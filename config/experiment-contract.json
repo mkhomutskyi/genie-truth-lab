@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "title": "Wanderbricks Travel Operations Truth Lab",
+  "audience": "Technical practitioners evaluating a first Genie Agent",
+  "purpose": "Describe how native results change when raw sources are replaced by a governed semantic layer centered on Gross Booked Value, while tracking unrelated control questions.",
+  "sources": [
+    "samples.wanderbricks.bookings",
+        "samples.wanderbricks.properties"
+  ],
+  "conditions": {
+    "baseline": {
+      "description": "Focused raw sources with reviewed column metadata and verified joins, but no Gross Booked Value definition, synonyms, example SQL, or benchmark leakage.",
+      "forbidden_tuning": [
+        "Do not copy benchmark prompts into sample questions.",
+        "Do not copy gold SQL into example SQL.",
+        "Do not define GBV, booking value, or gross booking value."
+      ]
+    },
+    "treatment": {
+      "description": "A Metric View replacing the two raw tables and governing four measures, centered on a declared Gross Booked Value definition and boundaries.",
+      "measure": {
+        "name": "Gross Booked Value",
+        "expression": "SUM(bookings.total_amount)",
+        "synonyms": [
+          "GBV",
+          "booking value",
+          "gross booking value",
+          "total value of bookings"
+        ],
+        "definition": "Sum bookings.total_amount across the booking rows included by the question.",
+        "boundaries": [
+          "Gross Booked Value is booked value, not collected cash or recognized revenue.",
+          "Apply a booking-status filter only when the user explicitly requests one.",
+          "Do not assert a currency unless verified source metadata establishes it."
+        ]
+      }
+    }
+  },
+  "implementation_note": "The deployed treatment replaced two raw tables with one Metric View that governed four measures. The measured first-stage change is therefore a semantic-layer intervention centered on GBV, not a single-field causal ablation.",
+  "post_hoc_optimization": {
+    "status": "Exploratory change selected after reviewing the first six runs.",
+    "trigger": "A development prompt grouped 18163 properties by 121 non-unique titles.",
+    "allowed_changes": [
+      "State that Property ID is the required property/listing grain.",
+      "State that Property Title is a non-unique display label.",
+      "Move the generic listing synonym from Property Title to Property ID."
+    ],
+    "frozen_assets": [
+      "Metric formulas",
+      "Benchmark prompts and checked SQL",
+      "Text instructions",
+      "Holdout wording",
+      "Control definitions"
+    ],
+    "repetitions": 3
+  },
+  "evaluation": {
+    "mode": "Chat",
+    "repetitions_per_condition": 3,
+    "development_prompts_per_family": 2,
+    "holdout_prompts_per_family": 2,
+    "primary_metric": "Exact-result accuracy on treatment prompts",
+    "secondary_metrics": [
+      "Overall exact-result accuracy",
+      "Control exact-result accuracy",
+      "Manual review of native misses and automated SQL guardrails for native passes",
+      "SQL execution rate",
+      "Failure category",
+      "Latency when available"
+    ],
+    "success_criteria": [
+      "Treatment accuracy improves by at least 25 percentage points.",
+      "At least six of eight treatment prompts pass in two or more post-change runs.",
+      "Control accuracy declines by no more than five percentage points.",
+      "No new revenue, currency, status-filter, or multiplicative-join claim appears."
+    ]
+  },
+  "clarification_contract": {
+    "prompt": "Which destination made us the most revenue?",
+    "required_behavior": [
+      "Clarify booked value versus successful payments or another revenue definition.",
+      "Clarify whether cancelled bookings should be excluded.",
+      "Avoid asserting a currency without verified metadata.",
+      "Avoid joining one booking to multiple payment or review rows without controlling grain."
+    ]
+  }
+}

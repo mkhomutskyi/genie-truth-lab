@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+message: "If you use this benchmark, cite it using the metadata below."
+title: "Genie Truth Lab"
+type: software
+authors:
+  - family-names: "Khomutskyi"
+    given-names: "Maks"
+repository-code: "https://github.com/mkhomutskyi/genie-truth-lab"
+url: "https://github.com/mkhomutskyi/genie-truth-lab"
+license: "Apache-2.0"
+version: "0.1.0"
+date-released: "2026-10-09"

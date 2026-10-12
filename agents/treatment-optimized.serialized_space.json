@@ -1,0 +1,461 @@
+{
+  "version": 2,
+  "data_sources": {
+    "metric_views": [
+      {
+        "identifier": "${catalog}.${schema}.genie_truth_lab_booking_metrics",
+        "column_configs": [
+          {
+            "column_name": "Average Stay Nights",
+            "description": [
+              "Average number of nights between check-in and check-out across booking records."
+            ],
+            "synonyms": [
+              "average stay length",
+              "mean nights",
+              "average nights"
+            ]
+          },
+          {
+            "column_name": "Booked Property Count",
+            "description": [
+              "Distinct properties that appear in at least one booking record."
+            ],
+            "synonyms": [
+              "booked listing count",
+              "unique booked properties"
+            ]
+          },
+          {
+            "column_name": "Booking Count",
+            "description": [
+              "Count of booking records, including every status unless the query filters status."
+            ],
+            "synonyms": [
+              "booking volume",
+              "reservation count",
+              "number of bookings"
+            ]
+          },
+          {
+            "column_name": "Booking Month",
+            "description": [
+              "Calendar month of the booking check-in date."
+            ],
+            "synonyms": [
+              "check-in month",
+              "stay month"
+            ]
+          },
+          {
+            "column_name": "Booking Status",
+            "description": [
+              "Current booking status: pending, confirmed, cancelled, or completed."
+            ],
+            "synonyms": [
+              "status",
+              "reservation status"
+            ],
+            "enable_format_assistance": true,
+            "enable_entity_matching": true
+          },
+          {
+            "column_name": "Gross Booked Value",
+            "description": [
+              "Sum of total_amount across booking records. This is booked value, not recognized revenue or payment receipts. The source declares no currency."
+            ],
+            "synonyms": [
+              "GBV",
+              "booking value",
+              "total booking value",
+              "gross booking value"
+            ]
+          },
+          {
+            "column_name": "Property ID",
+            "description": [
+              "Unique property grain. Always include and group by Property ID when a question asks for each property or listing."
+            ],
+            "synonyms": [
+              "listing ID",
+              "property ID",
+              "listing"
+            ]
+          },
+          {
+            "column_name": "Property Title",
+            "description": [
+              "Non-unique display label. Never group or rank listings by Property Title alone; include Property ID."
+            ],
+            "synonyms": [
+              "property name",
+              "listing title"
+            ]
+          },
+          {
+            "column_name": "Property Type",
+            "description": [
+              "Category of the property listing."
+            ],
+            "synonyms": [
+              "listing type",
+              "property category"
+            ],
+            "enable_format_assistance": true,
+            "enable_entity_matching": true
+          }
+        ]
+      }
+    ]
+  },
+  "instructions": {
+    "text_instructions": [
+      {
+        "id": "e127a2d4c6ab5209badf04825de3d064",
+        "content": [
+          "## PURPOSE\n- Answer questions about booking activity in the public Wanderbricks sample data.\n- The audience understands basic travel and lodging terms.\n\n## DISAMBIGUATION\n- If a user asks for revenue without defining the booking status or accounting treatment, ask which definition they mean. Do not assume a booking amount is recognized revenue.\n\n## DATA QUALITY NOTES\n- The source does not declare a currency for monetary values.\n- One booking row has a negative total_amount value.\n\n## CONSTRAINTS\n- Never label a monetary result as USD or another currency unless the user supplies that context.\n\n## Instructions you must follow when providing summaries\n- State the filters and date range used when they are not obvious from the question."
+        ]
+      }
+    ]
+  },
+  "benchmarks": {
+    "questions": [
+      {
+        "id": "0045999e09135b9daa1d128e7dbbd7a2",
+        "question": [
+          "What is average stay length in nights by property type?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT properties.property_type, AVG(DATEDIFF(bookings.check_out, bookings.check_in)) AS average_stay_nights FROM samples.wanderbricks.bookings AS bookings JOIN samples.wanderbricks.properties AS properties ON bookings.property_id = properties.property_id GROUP BY properties.property_type ORDER BY average_stay_nights DESC, properties.property_type"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "0846106b54df5d809d455324999e48a6",
+        "question": [
+          "Group unique property IDs found in bookings by property type."
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT properties.property_type, COUNT(DISTINCT bookings.property_id) AS booked_property_count FROM samples.wanderbricks.bookings AS bookings JOIN samples.wanderbricks.properties AS properties ON bookings.property_id = properties.property_id GROUP BY properties.property_type ORDER BY booked_property_count DESC, properties.property_type"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "1ce5be2e58d250f7b73c49d469295c49",
+        "question": [
+          "Show GBV for each check-in month."
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT DATE_TRUNC('MONTH', bookings.check_in) AS check_in_month, SUM(bookings.total_amount) AS gross_booked_value FROM samples.wanderbricks.bookings AS bookings GROUP BY DATE_TRUNC('MONTH', bookings.check_in) ORDER BY check_in_month"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "1e5c6bb668b55b61be4e453fd68d9b3a",
+        "question": [
+          "Show the 20 leading listings by GBV."
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT properties.property_id, properties.title AS property_title, SUM(bookings.total_amount) AS gross_booked_value FROM samples.wanderbricks.bookings AS bookings JOIN samples.wanderbricks.properties AS properties ON bookings.property_id = properties.property_id GROUP BY properties.property_id, properties.title ORDER BY gross_booked_value DESC, properties.property_id LIMIT 20"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "31afdf60478b508fa132a880d585d6d2",
+        "question": [
+          "How many bookings are there by check-in month?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT DATE_TRUNC('MONTH', bookings.check_in) AS check_in_month, COUNT(*) AS booking_count FROM samples.wanderbricks.bookings AS bookings GROUP BY DATE_TRUNC('MONTH', bookings.check_in) ORDER BY check_in_month"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "38dfe41d0dfd5b77b16ac063b87403fa",
+        "question": [
+          "Count properties that appear in bookings, grouped by type."
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT properties.property_type, COUNT(DISTINCT bookings.property_id) AS booked_property_count FROM samples.wanderbricks.bookings AS bookings JOIN samples.wanderbricks.properties AS properties ON bookings.property_id = properties.property_id GROUP BY properties.property_type ORDER BY booked_property_count DESC, properties.property_type"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "39c380d9a7db508f8736da38dac8bb86",
+        "question": [
+          "Which property types have the longest average stays?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT properties.property_type, AVG(DATEDIFF(bookings.check_out, bookings.check_in)) AS average_stay_nights FROM samples.wanderbricks.bookings AS bookings JOIN samples.wanderbricks.properties AS properties ON bookings.property_id = properties.property_id GROUP BY properties.property_type ORDER BY average_stay_nights DESC, properties.property_type"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "3a01cb0c2d2e5eeead87e2a53131b6d9",
+        "question": [
+          "Which 20 properties have the greatest booking value?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT properties.property_id, properties.title AS property_title, SUM(bookings.total_amount) AS gross_booked_value FROM samples.wanderbricks.bookings AS bookings JOIN samples.wanderbricks.properties AS properties ON bookings.property_id = properties.property_id GROUP BY properties.property_id, properties.title ORDER BY gross_booked_value DESC, properties.property_id LIMIT 20"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "49444de6cb2d5f098a16ef9f2751541d",
+        "question": [
+          "How many distinct booked properties are in each property type?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT properties.property_type, COUNT(DISTINCT bookings.property_id) AS booked_property_count FROM samples.wanderbricks.bookings AS bookings JOIN samples.wanderbricks.properties AS properties ON bookings.property_id = properties.property_id GROUP BY properties.property_type ORDER BY booked_property_count DESC, properties.property_type"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "539c9aaea561574d843b3f4b428d0731",
+        "question": [
+          "What is the booking status mix by count?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT bookings.status, COUNT(*) AS booking_count FROM samples.wanderbricks.bookings AS bookings GROUP BY bookings.status ORDER BY booking_count DESC, bookings.status"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "63c822d9af2d5d5eaf4a8043db151ce1",
+        "question": [
+          "Break down booking volume by status."
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT bookings.status, COUNT(*) AS booking_count FROM samples.wanderbricks.bookings AS bookings GROUP BY bookings.status ORDER BY booking_count DESC, bookings.status"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "65037496c1de5df3ac19bbcae7ec0b73",
+        "question": [
+          "Trend booking value by month using the check-in date."
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT DATE_TRUNC('MONTH', bookings.check_in) AS check_in_month, SUM(bookings.total_amount) AS gross_booked_value FROM samples.wanderbricks.bookings AS bookings GROUP BY DATE_TRUNC('MONTH', bookings.check_in) ORDER BY check_in_month"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "7b43c80d75d357f89f8f254757d3aa00",
+        "question": [
+          "Sum the total value of bookings for every check-in month."
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT DATE_TRUNC('MONTH', bookings.check_in) AS check_in_month, SUM(bookings.total_amount) AS gross_booked_value FROM samples.wanderbricks.bookings AS bookings GROUP BY DATE_TRUNC('MONTH', bookings.check_in) ORDER BY check_in_month"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "86be26377da753ee96ee5ceed39b56a8",
+        "question": [
+          "Compare average nights booked across property types."
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT properties.property_type, AVG(DATEDIFF(bookings.check_out, bookings.check_in)) AS average_stay_nights FROM samples.wanderbricks.bookings AS bookings JOIN samples.wanderbricks.properties AS properties ON bookings.property_id = properties.property_id GROUP BY properties.property_type ORDER BY average_stay_nights DESC, properties.property_type"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "89e25a590fdd541e9da222560f0fd8f3",
+        "question": [
+          "How many bookings are in each status?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT bookings.status, COUNT(*) AS booking_count FROM samples.wanderbricks.bookings AS bookings GROUP BY bookings.status ORDER BY booking_count DESC, bookings.status"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "9ea050b973b05cc6b6bf3f94231f3614",
+        "question": [
+          "Count bookings for every booking status."
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT bookings.status, COUNT(*) AS booking_count FROM samples.wanderbricks.bookings AS bookings GROUP BY bookings.status ORDER BY booking_count DESC, bookings.status"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "b30f2e1f498552a8842a7ca67d4065ba",
+        "question": [
+          "For each check-in month, count the bookings."
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT DATE_TRUNC('MONTH', bookings.check_in) AS check_in_month, COUNT(*) AS booking_count FROM samples.wanderbricks.bookings AS bookings GROUP BY DATE_TRUNC('MONTH', bookings.check_in) ORDER BY check_in_month"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "b8e8633616e05e139f6346761edb067e",
+        "question": [
+          "Show monthly booking count using the check-in date."
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT DATE_TRUNC('MONTH', bookings.check_in) AS check_in_month, COUNT(*) AS booking_count FROM samples.wanderbricks.bookings AS bookings GROUP BY DATE_TRUNC('MONTH', bookings.check_in) ORDER BY check_in_month"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "bbb3412f6d0b5bc09809c7b51a10b814",
+        "question": [
+          "What is gross booked value by check-in month?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT DATE_TRUNC('MONTH', bookings.check_in) AS check_in_month, SUM(bookings.total_amount) AS gross_booked_value FROM samples.wanderbricks.bookings AS bookings GROUP BY DATE_TRUNC('MONTH', bookings.check_in) ORDER BY check_in_month"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "bd3f6e15c3a7592f856a9f3820aae2a5",
+        "question": [
+          "Trend booking volume by month of check-in."
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT DATE_TRUNC('MONTH', bookings.check_in) AS check_in_month, COUNT(*) AS booking_count FROM samples.wanderbricks.bookings AS bookings GROUP BY DATE_TRUNC('MONTH', bookings.check_in) ORDER BY check_in_month"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "bd418e7927c95fe89fe732480632ae6f",
+        "question": [
+          "Rank the top 20 properties by gross booked value."
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT properties.property_id, properties.title AS property_title, SUM(bookings.total_amount) AS gross_booked_value FROM samples.wanderbricks.bookings AS bookings JOIN samples.wanderbricks.properties AS properties ON bookings.property_id = properties.property_id GROUP BY properties.property_id, properties.title ORDER BY gross_booked_value DESC, properties.property_id LIMIT 20"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "c68e64c1966b52d494600b1293e92397",
+        "question": [
+          "Sum booking value by property and return the top 20."
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT properties.property_id, properties.title AS property_title, SUM(bookings.total_amount) AS gross_booked_value FROM samples.wanderbricks.bookings AS bookings JOIN samples.wanderbricks.properties AS properties ON bookings.property_id = properties.property_id GROUP BY properties.property_id, properties.title ORDER BY gross_booked_value DESC, properties.property_id LIMIT 20"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "d141915a7b9058de9799d4e7b61725d7",
+        "question": [
+          "For each property type, average the days between check-in and check-out."
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT properties.property_type, AVG(DATEDIFF(bookings.check_out, bookings.check_in)) AS average_stay_nights FROM samples.wanderbricks.bookings AS bookings JOIN samples.wanderbricks.properties AS properties ON bookings.property_id = properties.property_id GROUP BY properties.property_type ORDER BY average_stay_nights DESC, properties.property_type"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "fff6a33e2e2f52fa90e49ceaa8ab47bc",
+        "question": [
+          "Show the mix of booked listings by property category."
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT properties.property_type, COUNT(DISTINCT bookings.property_id) AS booked_property_count FROM samples.wanderbricks.bookings AS bookings JOIN samples.wanderbricks.properties AS properties ON bookings.property_id = properties.property_id GROUP BY properties.property_type ORDER BY booked_property_count DESC, properties.property_type"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

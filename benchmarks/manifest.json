@@ -1,0 +1,194 @@
+{
+  "version": 1,
+  "dataset": "samples.wanderbricks",
+  "mode": "Chat",
+  "new_conversation_per_prompt": true,
+  "repetitions_per_condition": 3,
+  "comparison": {
+    "numeric_significant_digits": 4,
+    "ignore_row_order": true,
+    "maximum_expected_rows": 5000
+  },
+  "families": [
+    {
+      "id": "monthly-booking-volume",
+      "cohort": "control",
+      "intent": "Count bookings by check-in month.",
+      "expected_sql": "SELECT DATE_TRUNC('MONTH', bookings.check_in) AS check_in_month, COUNT(*) AS booking_count FROM samples.wanderbricks.bookings AS bookings GROUP BY DATE_TRUNC('MONTH', bookings.check_in) ORDER BY check_in_month",
+      "prompts": [
+        {
+          "id": "monthly-booking-volume-dev-1",
+          "split": "development",
+          "text": "How many bookings are there by check-in month?"
+        },
+        {
+          "id": "monthly-booking-volume-dev-2",
+          "split": "development",
+          "text": "Show monthly booking count using the check-in date."
+        },
+        {
+          "id": "monthly-booking-volume-holdout-1",
+          "split": "holdout",
+          "text": "Trend booking volume by month of check-in."
+        },
+        {
+          "id": "monthly-booking-volume-holdout-2",
+          "split": "holdout",
+          "text": "For each check-in month, count the bookings."
+        }
+      ]
+    },
+    {
+      "id": "monthly-gross-booked-value",
+      "cohort": "treatment",
+      "intent": "Sum booked value by check-in month without calling it revenue.",
+      "expected_sql": "SELECT DATE_TRUNC('MONTH', bookings.check_in) AS check_in_month, SUM(bookings.total_amount) AS gross_booked_value FROM samples.wanderbricks.bookings AS bookings GROUP BY DATE_TRUNC('MONTH', bookings.check_in) ORDER BY check_in_month",
+      "prompts": [
+        {
+          "id": "monthly-gross-booked-value-dev-1",
+          "split": "development",
+          "text": "What is gross booked value by check-in month?"
+        },
+        {
+          "id": "monthly-gross-booked-value-dev-2",
+          "split": "development",
+          "text": "Show GBV for each check-in month."
+        },
+        {
+          "id": "monthly-gross-booked-value-holdout-1",
+          "split": "holdout",
+          "text": "Trend booking value by month using the check-in date."
+        },
+        {
+          "id": "monthly-gross-booked-value-holdout-2",
+          "split": "holdout",
+          "text": "Sum the total value of bookings for every check-in month."
+        }
+      ]
+    },
+    {
+      "id": "booking-status-mix",
+      "cohort": "control",
+      "intent": "Count bookings by their recorded status.",
+      "expected_sql": "SELECT bookings.status, COUNT(*) AS booking_count FROM samples.wanderbricks.bookings AS bookings GROUP BY bookings.status ORDER BY booking_count DESC, bookings.status",
+      "prompts": [
+        {
+          "id": "booking-status-mix-dev-1",
+          "split": "development",
+          "text": "How many bookings are in each status?"
+        },
+        {
+          "id": "booking-status-mix-dev-2",
+          "split": "development",
+          "text": "Break down booking volume by status."
+        },
+        {
+          "id": "booking-status-mix-holdout-1",
+          "split": "holdout",
+          "text": "Count bookings for every booking status."
+        },
+        {
+          "id": "booking-status-mix-holdout-2",
+          "split": "holdout",
+          "text": "What is the booking status mix by count?"
+        }
+      ]
+    },
+    {
+      "id": "property-gross-booked-value",
+      "cohort": "treatment",
+      "intent": "Rank the top 20 properties by booked value without calling it revenue.",
+      "expected_sql": "SELECT properties.property_id, properties.title AS property_title, SUM(bookings.total_amount) AS gross_booked_value FROM samples.wanderbricks.bookings AS bookings JOIN samples.wanderbricks.properties AS properties ON bookings.property_id = properties.property_id GROUP BY properties.property_id, properties.title ORDER BY gross_booked_value DESC, properties.property_id LIMIT 20",
+      "prompts": [
+        {
+          "id": "property-gross-booked-value-dev-1",
+          "split": "development",
+          "text": "Rank the top 20 properties by gross booked value."
+        },
+        {
+          "id": "property-gross-booked-value-dev-2",
+          "split": "development",
+          "text": "Show the 20 leading listings by GBV."
+        },
+        {
+          "id": "property-gross-booked-value-holdout-1",
+          "split": "holdout",
+          "text": "Which 20 properties have the greatest booking value?"
+        },
+        {
+          "id": "property-gross-booked-value-holdout-2",
+          "split": "holdout",
+          "text": "Sum booking value by property and return the top 20."
+        }
+      ]
+    },
+    {
+      "id": "average-stay-length",
+      "cohort": "control",
+      "intent": "Calculate average booked nights by property type.",
+      "expected_sql": "SELECT properties.property_type, AVG(DATEDIFF(bookings.check_out, bookings.check_in)) AS average_stay_nights FROM samples.wanderbricks.bookings AS bookings JOIN samples.wanderbricks.properties AS properties ON bookings.property_id = properties.property_id GROUP BY properties.property_type ORDER BY average_stay_nights DESC, properties.property_type",
+      "prompts": [
+        {
+          "id": "average-stay-length-dev-1",
+          "split": "development",
+          "text": "What is average stay length in nights by property type?"
+        },
+        {
+          "id": "average-stay-length-dev-2",
+          "split": "development",
+          "text": "Compare average nights booked across property types."
+        },
+        {
+          "id": "average-stay-length-holdout-1",
+          "split": "holdout",
+          "text": "For each property type, average the days between check-in and check-out."
+        },
+        {
+          "id": "average-stay-length-holdout-2",
+          "split": "holdout",
+          "text": "Which property types have the longest average stays?"
+        }
+      ]
+    },
+    {
+      "id": "booked-property-type-mix",
+      "cohort": "control",
+      "intent": "Count distinct properties that appear in bookings, grouped by property type.",
+      "expected_sql": "SELECT properties.property_type, COUNT(DISTINCT bookings.property_id) AS booked_property_count FROM samples.wanderbricks.bookings AS bookings JOIN samples.wanderbricks.properties AS properties ON bookings.property_id = properties.property_id GROUP BY properties.property_type ORDER BY booked_property_count DESC, properties.property_type",
+      "prompts": [
+        {
+          "id": "booked-property-type-mix-dev-1",
+          "split": "development",
+          "text": "How many distinct booked properties are in each property type?"
+        },
+        {
+          "id": "booked-property-type-mix-dev-2",
+          "split": "development",
+          "text": "Count properties that appear in bookings, grouped by type."
+        },
+        {
+          "id": "booked-property-type-mix-holdout-1",
+          "split": "holdout",
+          "text": "Show the mix of booked listings by property category."
+        },
+        {
+          "id": "booked-property-type-mix-holdout-2",
+          "split": "holdout",
+          "text": "Group unique property IDs found in bookings by property type."
+        }
+      ]
+    }
+  ],
+  "clarification_checks": [
+    {
+      "id": "revenue-ambiguity",
+      "prompt": "Which destination made us the most revenue?",
+      "expected_behavior": [
+        "Ask whether revenue means booked value or successful payments.",
+        "Ask whether cancelled bookings should be excluded.",
+        "Do not assert a currency without verified source metadata.",
+        "Do not execute a multiplicative bookings-to-payments or bookings-to-reviews join."
+      ]
+    }
+  ]
+}

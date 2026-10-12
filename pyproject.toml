@@ -1,0 +1,21 @@
+[project]
+name = "genie-truth-lab"
+version = "0.1.0"
+description = "Reproducible Databricks Genie benchmark on documented sample data"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+dependencies = []
+
+[dependency-groups]
+dev = [
+  "pytest>=9.0.3,<10.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[[tool.uv.index]]
+name = "pypi"
+url = "https://pypi.org/simple"
+default = true
